@@ -6,13 +6,36 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/crgimenes/goconfig"
 )
 
 func main() {
-	j, err := ioutil.ReadAll(os.Stdin)
+	type configFlags struct {
+		Input string `json:"i" cfg:"i" cfgDefault:"-"`
+	}
+
+	cfg := configFlags{}
+	goconfig.PrefixEnv = "JSON_LINT"
+	err := goconfig.Parse(&cfg)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)
+	}
+	var j []byte
+
+	if cfg.Input == "-" {
+		j, err = ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
+	} else {
+		j, err = ioutil.ReadFile(cfg.Input)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
 	}
 	var m interface{}
 	err = json.Unmarshal(j, &m)
