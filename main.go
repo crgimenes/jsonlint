@@ -12,7 +12,8 @@ import (
 
 func main() {
 	type configFlags struct {
-		Input string `json:"i" cfg:"i" cfgDefault:"-" cfgHelper:"input from"`
+		Input  string `json:"i" cfg:"i" cfgDefault:"-" cfgHelper:"input from"`
+		Output string `json:"o" cfg:"o" cfgDefault:"-" cfgHelper:"output to"`
 	}
 
 	cfg := configFlags{}
@@ -65,7 +66,14 @@ func main() {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
-	fmt.Println(string(j))
+	if cfg.Output == "-" {
+		fmt.Println(string(j))
+	} else {
+		err = ioutil.WriteFile(cfg.Output, j, 0644)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
 }
 
 func getErrorLineCol(source []byte, offset int64) (lin, col int) {
