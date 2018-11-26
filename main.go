@@ -55,11 +55,17 @@ func main() {
 			log.Printf("3> %T %v", err, err)
 		}
 
-		printErrorSource([]byte(j), offset)
-		lin, col := getErrorLineCol([]byte(j), offset)
+		printErrorSource(j, offset)
+		lin, col := getErrorLineCol(j, offset)
 		fmt.Println("lin:", lin, "col:", col)
-		return
+		os.Exit(-1)
 	}
+	j, err = json.MarshalIndent(m, "", "\t")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
+	fmt.Println(string(j))
 }
 
 func getErrorLineCol(source []byte, offset int64) (lin, col int) {
