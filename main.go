@@ -3,29 +3,19 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"os"
 )
 
 func main() {
-	j := `
-	[{ "glossary": { "title"    	:	 "example glossary"  ,"GlossDiv" :: {"title": "S", "GlossList": {"GlossEntry": { "ID": "SGML", "SortAs": "SGML",
-						"GlossTerm": "Standard Generalized Markup Language",
-						"AcronymC":"",
-						"Acronym": "SGML",
-						"Abbrev": "ISO 8879:1986",
-						"GlossDef": {
-							"para": "A meta-markup language, used to create markup languages such as DocBook.",
-							"GlossSeeAlso": ["GML", "XML"]
-						},
-						"GlossSee": "markup"
-					}
-				}
-			}
-		}
-	}]`
-
+	j, err := ioutil.ReadAll(os.Stdin)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
 	var m interface{}
-	err := json.Unmarshal([]byte(j), &m)
+	err = json.Unmarshal(j, &m)
 	var offset int64
 	if err != nil {
 		switch e := err.(type) {
