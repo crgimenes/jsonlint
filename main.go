@@ -31,29 +31,25 @@ func main() {
 		switch e := err.(type) {
 		case *json.UnmarshalTypeError:
 			log.Printf("UnmarshalTypeError: Value[%s] Type[%v]\n", e.Value, e.Type)
-			fmt.Println(">>>>>>>", e.Offset, e.Struct)
+			fmt.Println("1>", e.Offset, e.Struct)
 			offset = e.Offset
 		case *json.InvalidUnmarshalError:
 			log.Printf("InvalidUnmarshalError: Type[%v]\n", e.Type)
 		case *json.SyntaxError:
-			fmt.Println(">>>>>>>", e.Offset, e.Error())
+			fmt.Println("2>", e.Offset, e.Error())
 			offset = e.Offset
 		default:
-			log.Printf(">>>>>>>>>> %T %v", err, err)
+			log.Printf("3> %T %v", err, err)
 		}
-		//h := strings.Repeat(" ", int(offset-1))
-		//fmt.Println(">" + j[offset-5:offset+9] + "<")
-		//fmt.Printf("%v^\n", h)
-		getErrorSource(j, offset)
-		lin, col := getErrorLineCol(j, offset)
+
+		printErrorSource([]byte(j), offset)
+		lin, col := getErrorLineCol([]byte(j), offset)
 		fmt.Println("lin:", lin, "col:", col)
 		return
 	}
-
-	//json.UnmarshalTypeError
 }
 
-func getErrorLineCol(source string, offset int64) (lin, col int) {
+func getErrorLineCol(source []byte, offset int64) (lin, col int) {
 	for i := int64(0); i < offset; i++ {
 		v := source[i]
 		if v == '\r' {
@@ -69,7 +65,7 @@ func getErrorLineCol(source string, offset int64) (lin, col int) {
 	return
 }
 
-func getErrorSource(source string, offset int64) {
+func printErrorSource(source []byte, offset int64) {
 	start := offset - 1
 	limit := 0
 	for ; start > 0; start-- {
@@ -99,6 +95,6 @@ func getErrorSource(source string, offset int64) {
 		}
 		space += " "
 	}
-	fmt.Println(source[start:end])
+	fmt.Printf("%s\n", source[start:end])
 	fmt.Printf("%v↑\n", space)
 }
