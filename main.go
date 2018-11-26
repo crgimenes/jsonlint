@@ -12,7 +12,7 @@ import (
 
 func main() {
 	type configFlags struct {
-		Input string `json:"i" cfg:"i" cfgDefault:"-"`
+		Input string `json:"i" cfg:"i" cfgDefault:"-" cfgHelper:"input from"`
 	}
 
 	cfg := configFlags{}
