@@ -28,11 +28,11 @@ func ParseJSONError(source []byte, err error) (out string, offset int64) {
 			col)
 		offset = e.Offset
 	case *json.InvalidUnmarshalError:
-		out = fmt.Sprintf("InvalidUnmarshalError: %v, Type[%v]\n",
+		out = fmt.Sprintf("InvalidUnmarshalError: %v, Type[%v]",
 			e.Error(),
 			e.Type)
 	default:
-		out = fmt.Sprintf("error: %v\n", e.Error())
+		out = fmt.Sprintf("error: %v", e.Error())
 	}
 	return
 }

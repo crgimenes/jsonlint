@@ -1,6 +1,9 @@
 package jl
 
 import (
+	"encoding/json"
+	"errors"
+	"reflect"
 	"testing"
 )
 
@@ -87,6 +90,76 @@ func Test_GetErrorJSONSource(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if gotOut := GetErrorJSONSource(tt.args.source, tt.args.offset); gotOut != tt.wantOut {
 				t.Errorf("GetErrorJSONSource() = %q, want %q", gotOut, tt.wantOut)
+			}
+		})
+	}
+}
+
+func TestParseJSONError(t *testing.T) {
+	type args struct {
+		source []byte
+		err    error
+	}
+	tests := []struct {
+		name       string
+		args       args
+		wantOut    string
+		wantOffset int64
+	}{
+		{
+			name: "simple UnmarshalTypeError",
+			args: args{
+				source: []byte("xxxx\nXXXXX\nxxxx"),
+				err: &json.UnmarshalTypeError{
+					Value:  "array",
+					Type:   reflect.TypeOf(""),
+					Offset: 7,
+					Struct: "T",
+					Field:  "X"},
+			},
+			wantOut:    "UnmarshalTypeError: json: cannot unmarshal array into Go struct field T.X of type string, Value[array], Type[string], offset: 7, row: 1, col: 2",
+			wantOffset: 7,
+		},
+		{
+			name: "simple SyntaxError",
+			args: args{
+				source: []byte("xxxx\nXXXXX\nxxxx"),
+				err: &json.SyntaxError{
+					Offset: 7,
+				},
+			},
+			wantOut:    "SyntaxError: , offset: 7, row: 1, col: 2",
+			wantOffset: 7,
+		},
+		{
+			name: "simple InvalidUnmarshalError",
+			args: args{
+				source: []byte(""),
+				err: &json.InvalidUnmarshalError{
+					Type: reflect.TypeOf(""),
+				},
+			},
+			wantOut:    "InvalidUnmarshalError: json: Unmarshal(non-pointer string), Type[string]",
+			wantOffset: -1,
+		},
+		{
+			name: "default error",
+			args: args{
+				source: []byte(""),
+				err:    errors.New("test"),
+			},
+			wantOut:    "error: test",
+			wantOffset: -1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotOut, gotOffset := ParseJSONError(tt.args.source, tt.args.err)
+			if gotOut != tt.wantOut {
+				t.Errorf("ParseJSONError() gotOut = %q, want %q", gotOut, tt.wantOut)
+			}
+			if gotOffset != tt.wantOffset {
+				t.Errorf("ParseJSONError() gotOffset = %v, want %v", gotOffset, tt.wantOffset)
 			}
 		})
 	}
