@@ -1,6 +1,8 @@
 package main
 
-import "testing"
+import (
+	"testing"
+)
 
 func Test_getErrorRowCol(t *testing.T) {
 	type args struct {
@@ -49,6 +51,42 @@ func Test_getErrorRowCol(t *testing.T) {
 			}
 			if gotCol != tt.wantCol {
 				t.Errorf("getErrorRowCol() gotCol = %v, want %v", gotCol, tt.wantCol)
+			}
+		})
+	}
+}
+
+func Test_getErrorJSONSource(t *testing.T) {
+	type args struct {
+		source []byte
+		offset int64
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantOut string
+	}{
+		{
+			name: "simple offset",
+			args: args{
+				source: []byte("xxxx\nXXXXX\nxxxx"),
+				offset: 8,
+			},
+			wantOut: "XXXXX\n  ↑",
+		},
+		{
+			name: "with tab",
+			args: args{
+				source: []byte("xxxx\nX\tXXXX\nxxxx"),
+				offset: 8,
+			},
+			wantOut: "X\tXXXX\n \t↑",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if gotOut := getErrorJSONSource(tt.args.source, tt.args.offset); gotOut != tt.wantOut {
+				t.Errorf("getErrorJSONSource() = %q, want %q", gotOut, tt.wantOut)
 			}
 		})
 	}
