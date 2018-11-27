@@ -19,7 +19,7 @@ func main() {
 	goconfig.PrefixEnv = "JSON_LINT"
 	err := goconfig.Parse(&cfg)
 	if err != nil {
-		fmt.Println(err)
+		printError("%v\n", err)
 		os.Exit(-1)
 	}
 	var j []byte
@@ -27,61 +27,77 @@ func main() {
 	if cfg.Input == "stdin" {
 		j, err = ioutil.ReadAll(os.Stdin)
 		if err != nil {
-			fmt.Println(err)
+			printError("%v\n", err)
 			os.Exit(-1)
 		}
 	} else {
 		j, err = ioutil.ReadFile(cfg.Input)
 		if err != nil {
-			fmt.Println(err)
+			printError("%v\n", err)
 			os.Exit(-1)
 		}
 	}
 	var m interface{}
 	err = json.Unmarshal(j, &m)
-	var offset int64
 	if err != nil {
-		out := ""
-		switch e := err.(type) {
-		case *json.UnmarshalTypeError:
-			out = fmt.Sprintf("UnmarshalTypeError: %v, Value[%s], Type[%v], offset: %v",
-				e.Error(),
-				e.Value,
-				e.Type,
-				e.Offset)
-			offset = e.Offset
-		case *json.SyntaxError:
-			out = fmt.Sprintf("SyntaxError: %v, offset: %v",
-				e.Error(),
-				e.Offset)
-			offset = e.Offset
-		case *json.InvalidUnmarshalError:
-			fmt.Fprintf(os.Stderr, "InvalidUnmarshalError: %v, Type[%v]\n",
-				e.Error(),
-				e.Type)
-			os.Exit(-1)
-		default:
-			fmt.Fprintf(os.Stderr, "error: %v\n", e.Error())
-			os.Exit(-1)
+		out, offset := parseJSONError(j, err)
+		printError("%v\n", out)
+		if offset > 0 {
+			out = getErrorJSONSource(j, offset)
+			printError("%v\n", out)
 		}
-
-		row, col := getErrorRowCol(j, offset)
-		fmt.Fprintf(os.Stderr, "%v, row: %v, col: %v\n", out, row, col)
-		printErrorSource(j, offset)
 		os.Exit(-1)
 	}
 	j, err = json.MarshalIndent(m, "", "\t")
 	if err != nil {
-		fmt.Println(err)
+		printError("%v\n", err)
 		os.Exit(-1)
 	}
 	if cfg.Output == "stdout" {
 		fmt.Println(string(j))
-	} else {
-		err = ioutil.WriteFile(cfg.Output, j, 0644)
-		if err != nil {
-			fmt.Println(err)
-		}
+		return
+	}
+	err = ioutil.WriteFile(cfg.Output, j, 0644)
+	if err != nil {
+		printError("%v\n", err)
+	}
+}
+
+func parseJSONError(source []byte, err error) (out string, offset int64) {
+	offset = -1
+	switch e := err.(type) {
+	case *json.UnmarshalTypeError:
+		row, col := getErrorRowCol(source, e.Offset)
+		out = fmt.Sprintf("UnmarshalTypeError: %v, Value[%s], Type[%v], offset: %v, row: %v, col: %v",
+			e.Error(),
+			e.Value,
+			e.Type,
+			e.Offset,
+			row,
+			col)
+		offset = e.Offset
+	case *json.SyntaxError:
+		row, col := getErrorRowCol(source, e.Offset)
+		out = fmt.Sprintf("SyntaxError: %v, offset: %v, row: %v, col: %v",
+			e.Error(),
+			e.Offset,
+			row,
+			col)
+		offset = e.Offset
+	case *json.InvalidUnmarshalError:
+		out = fmt.Sprintf("InvalidUnmarshalError: %v, Type[%v]\n",
+			e.Error(),
+			e.Type)
+	default:
+		out = fmt.Sprintf("error: %v\n", e.Error())
+	}
+	return
+}
+
+func printError(format string, a ...interface{}) {
+	_, err := fmt.Fprintf(os.Stderr, format, a...)
+	if err != nil {
+		fmt.Println(err)
 	}
 }
 
@@ -101,7 +117,7 @@ func getErrorRowCol(source []byte, offset int64) (row, col int) {
 	return
 }
 
-func printErrorSource(source []byte, offset int64) {
+func getErrorJSONSource(source []byte, offset int64) (out string) {
 	start := offset - 1
 	limit := 0
 	for ; start > 0; start-- {
@@ -131,6 +147,6 @@ func printErrorSource(source []byte, offset int64) {
 		}
 		space += " "
 	}
-	fmt.Fprintf(os.Stderr, "%s\n", source[start:end])
-	fmt.Fprintf(os.Stderr, "%v↑\n", space)
+	out = fmt.Sprintf("%s\n%v↑", source[start:end], space)
+	return
 }
