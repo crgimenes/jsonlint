@@ -117,8 +117,8 @@ func getErrorRowCol(source []byte, offset int64) (row, col int) {
 	return
 }
 
-func getErrorJSONSource(source []byte, offset int64) (out string) {
-	start := offset - 1
+func getStart(source []byte, offset int64) (start int64) {
+	start = offset - 1
 	limit := 0
 	for ; start > 0; start-- {
 		if source[start] == '\r' ||
@@ -129,8 +129,12 @@ func getErrorJSONSource(source []byte, offset int64) (out string) {
 		limit++
 	}
 	start++
-	end := offset
-	limit = 0
+	return
+}
+
+func getEnd(source []byte, offset int64) (end int64) {
+	end = offset
+	limit := 0
 	for ; int64(len(source)) > end; end++ {
 		if source[end] == '\r' ||
 			source[end] == '\n' ||
@@ -139,14 +143,24 @@ func getErrorJSONSource(source []byte, offset int64) (out string) {
 		}
 		limit++
 	}
-	space := ""
+	return
+}
+
+func getSpaces(source []byte, start, offset int64) (spaces string) {
 	for i := start; i < offset-1; i++ {
 		if source[i] == '\t' {
-			space += "\t"
+			spaces += "\t"
 			continue
 		}
-		space += " "
+		spaces += " "
 	}
-	out = fmt.Sprintf("%s\n%v↑", source[start:end], space)
+	return
+}
+
+func getErrorJSONSource(source []byte, offset int64) (out string) {
+	start := getStart(source, offset)
+	end := getEnd(source, offset)
+	spaces := getSpaces(source, start, offset)
+	out = fmt.Sprintf("%s\n%v↑", source[start:end], spaces)
 	return
 }
