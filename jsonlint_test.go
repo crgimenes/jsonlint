@@ -1,4 +1,4 @@
-package main
+package jl
 
 import (
 	"testing"
@@ -56,7 +56,7 @@ func Test_getErrorRowCol(t *testing.T) {
 	}
 }
 
-func Test_getErrorJSONSource(t *testing.T) {
+func Test_GetErrorJSONSource(t *testing.T) {
 	type args struct {
 		source []byte
 		offset int64
@@ -85,8 +85,8 @@ func Test_getErrorJSONSource(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if gotOut := getErrorJSONSource(tt.args.source, tt.args.offset); gotOut != tt.wantOut {
-				t.Errorf("getErrorJSONSource() = %q, want %q", gotOut, tt.wantOut)
+			if gotOut := GetErrorJSONSource(tt.args.source, tt.args.offset); gotOut != tt.wantOut {
+				t.Errorf("GetErrorJSONSource() = %q, want %q", gotOut, tt.wantOut)
 			}
 		})
 	}
