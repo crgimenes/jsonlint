@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 
 	"github.com/crgimenes/goconfig"
@@ -12,8 +11,8 @@ import (
 
 func main() {
 	type configFlags struct {
-		Input  string `json:"i" cfg:"i" cfgDefault:"-" cfgHelper:"input from"`
-		Output string `json:"o" cfg:"o" cfgDefault:"-" cfgHelper:"output to"`
+		Input  string `json:"i" cfg:"i" cfgDefault:"stdin" cfgHelper:"input from"`
+		Output string `json:"o" cfg:"o" cfgDefault:"stdout" cfgHelper:"output to"`
 	}
 
 	cfg := configFlags{}
@@ -25,7 +24,7 @@ func main() {
 	}
 	var j []byte
 
-	if cfg.Input == "-" {
+	if cfg.Input == "stdin" {
 		j, err = ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			fmt.Println(err)
@@ -42,23 +41,33 @@ func main() {
 	err = json.Unmarshal(j, &m)
 	var offset int64
 	if err != nil {
+		out := ""
 		switch e := err.(type) {
 		case *json.UnmarshalTypeError:
-			log.Printf("UnmarshalTypeError: Value[%s] Type[%v]\n", e.Value, e.Type)
-			fmt.Println("1>", e.Offset, e.Struct)
+			out = fmt.Sprintf("UnmarshalTypeError: %v, Value[%s], Type[%v], offset: %v",
+				e.Error(),
+				e.Value,
+				e.Type,
+				e.Offset)
+			offset = e.Offset
+		case *json.SyntaxError:
+			out = fmt.Sprintf("SyntaxError: %v, offset: %v",
+				e.Error(),
+				e.Offset)
 			offset = e.Offset
 		case *json.InvalidUnmarshalError:
-			log.Printf("InvalidUnmarshalError: Type[%v]\n", e.Type)
-		case *json.SyntaxError:
-			fmt.Println("2>", e.Offset, e.Error())
-			offset = e.Offset
+			fmt.Fprintf(os.Stderr, "InvalidUnmarshalError: %v, Type[%v]\n",
+				e.Error(),
+				e.Type)
+			os.Exit(-1)
 		default:
-			log.Printf("3> %T %v", err, err)
+			fmt.Fprintf(os.Stderr, "error: %v\n", e.Error())
+			os.Exit(-1)
 		}
 
+		row, col := getErrorRowCol(j, offset)
+		fmt.Fprintf(os.Stderr, "%v, row: %v, col: %v\n", out, row, col)
 		printErrorSource(j, offset)
-		lin, col := getErrorLineCol(j, offset)
-		fmt.Println("lin:", lin, "col:", col)
 		os.Exit(-1)
 	}
 	j, err = json.MarshalIndent(m, "", "\t")
@@ -66,7 +75,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(-1)
 	}
-	if cfg.Output == "-" {
+	if cfg.Output == "stdout" {
 		fmt.Println(string(j))
 	} else {
 		err = ioutil.WriteFile(cfg.Output, j, 0644)
@@ -76,7 +85,7 @@ func main() {
 	}
 }
 
-func getErrorLineCol(source []byte, offset int64) (lin, col int) {
+func getErrorRowCol(source []byte, offset int64) (row, col int) {
 	for i := int64(0); i < offset; i++ {
 		v := source[i]
 		if v == '\r' {
@@ -84,7 +93,7 @@ func getErrorLineCol(source []byte, offset int64) (lin, col int) {
 		}
 		if v == '\n' {
 			col = 0
-			lin++
+			row++
 			continue
 		}
 		col++
@@ -122,6 +131,6 @@ func printErrorSource(source []byte, offset int64) {
 		}
 		space += " "
 	}
-	fmt.Printf("%s\n", source[start:end])
-	fmt.Printf("%v↑\n", space)
+	fmt.Fprintf(os.Stderr, "%s\n", source[start:end])
+	fmt.Fprintf(os.Stderr, "%v↑\n", space)
 }
