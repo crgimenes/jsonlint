@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/crgimenes/goconfig"
-	"github.com/gosidekick/jl"
+	"github.com/gosidekick/jsonlint"
 )
 
 func printError(a ...interface{}) {
@@ -55,10 +55,10 @@ func main() {
 	var m interface{}
 	err = json.Unmarshal(j, &m)
 	if err != nil {
-		out, offset := jl.ParseJSONError(j, err)
+		out, offset := jsonlint.ParseJSONError(j, err)
 		printError(out)
 		if offset > 0 {
-			out = jl.GetErrorJSONSource(j, offset)
+			out = jsonlint.GetErrorJSONSource(j, offset)
 			printIndicator(out)
 		}
 		os.Exit(-1)

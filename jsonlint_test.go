@@ -1,4 +1,4 @@
-package jl
+package jsonlint
 
 import (
 	"encoding/json"
