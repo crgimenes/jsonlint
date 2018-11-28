@@ -10,8 +10,15 @@ import (
 	"github.com/gosidekick/jl"
 )
 
-func printError(format string, a ...interface{}) {
-	_, err := fmt.Fprintf(os.Stderr, format, a...)
+func printError(a ...interface{}) {
+	_, err := fmt.Fprintf(os.Stderr, "\x1b[91m%v\033[0;00m\n", a...)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func printIndicator(a ...interface{}) {
+	_, err := fmt.Fprintf(os.Stderr, "\x1b[96m%v\033[0;00m\n", a...)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -27,7 +34,7 @@ func main() {
 	goconfig.PrefixEnv = "JSON_LINT"
 	err := goconfig.Parse(&cfg)
 	if err != nil {
-		printError("%v\n", err)
+		printError(err)
 		os.Exit(-1)
 	}
 	var j []byte
@@ -35,13 +42,13 @@ func main() {
 	if cfg.Input == "stdin" {
 		j, err = ioutil.ReadAll(os.Stdin)
 		if err != nil {
-			printError("%v\n", err)
+			printError(err)
 			os.Exit(-1)
 		}
 	} else {
 		j, err = ioutil.ReadFile(cfg.Input)
 		if err != nil {
-			printError("%v\n", err)
+			printError(err)
 			os.Exit(-1)
 		}
 	}
@@ -49,16 +56,16 @@ func main() {
 	err = json.Unmarshal(j, &m)
 	if err != nil {
 		out, offset := jl.ParseJSONError(j, err)
-		printError("%v\n", out)
+		printError(out)
 		if offset > 0 {
 			out = jl.GetErrorJSONSource(j, offset)
-			printError("%v\n", out)
+			printIndicator(out)
 		}
 		os.Exit(-1)
 	}
 	j, err = json.MarshalIndent(m, "", "\t")
 	if err != nil {
-		printError("%v\n", err)
+		printError(err)
 		os.Exit(-1)
 	}
 	if cfg.Output == "stdout" {
@@ -67,6 +74,6 @@ func main() {
 	}
 	err = ioutil.WriteFile(cfg.Output, j, 0644)
 	if err != nil {
-		printError("%v\n", err)
+		printError(err)
 	}
 }
