@@ -5,6 +5,57 @@
 [![Go project version](https://badge.fury.io/go/github.com%2Fgosidekick%2Fjsonlint.svg)](https://badge.fury.io/go/github.com/gosidekick/jsonlint)
 [![MIT Licensed](https://img.shields.io/badge/license-MIT-green.svg)](https://tldrlegal.com/license/mit-license)
 
+A small utility to validate, format JSON and when it has an error, if possible indicate with an arrow where the error is.
+
+It can also be used as a Go package.
+
+## Example
+
+```console
+cat << EOF | jl                                                                       {
+    "name": "John",
+    "age": 30,
+    "cars": {
+        "car1": "Ford",
+        "car2":: "BMW",
+        "car3": "Fiat"
+    }
+}
+EOF
+SyntaxError: invalid character ':' looking for beginning of value, offset: 91, row: 5, col: 16
+        "car2":: "BMW",
+               ↑
+```
+
+## As a package
+
+Use as a Go package to get a better error message.
+
+```console
+go get -u github.com/gosidekick/jsonlint
+```
+
+```go
+j := `{
+    "name": "John",
+    "age": 30,
+    "cars": {
+        "car1": "Ford",
+        "car2":: "BMW",
+        "car3": "Fiat"
+    }
+}`
+err := json.Unmarshal(j, &m)
+if err != nil {
+	out, offset := jsonlint.ParseJSONError(j, err)
+	fmt.Println(out) // print the error message
+	if offset > 0 {
+		out = jsonlint.GetErrorJSONSource(j, offset)
+		fmt.Println(out) // print the arrow
+	}
+	return
+}
+```
 
 ## Contributing
 
